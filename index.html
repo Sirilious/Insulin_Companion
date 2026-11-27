@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23b42318'/%3E%3Cpath d='M32 11C32 11 15 31.2 15 42.5C15 51.9 22.6 56 32 56C41.4 56 49 51.9 49 42.5C49 31.2 32 11 32 11Z' fill='%23ffffff'/%3E%3Cpath d='M24.5 41.5C24.5 45.8 27.5 49 31.5 49.5' stroke='%23e8c4c0' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='42' fill='%23b42318'/%3E%3Cpath d='M90 30C90 30 42 87 42 119C42 145.5 63.5 157 90 157C116.5 157 138 145.5 138 119C138 87 90 30 90 30Z' fill='%23ffffff'/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#b42318">
+<title>Insulin &amp; Carb Companion</title>
+<style>
+:root{
+  --bg:#f4f5f7;--surface:#ffffff;--surface-2:#eef1f4;--ink:#141a21;--muted:#5c6875;--line:#d8dee6;
+  --accent:#1b4f9c;--accent-ink:#ffffff;--accent-soft:#e9eff8;
+  --warn:#9a3b08;--warn-soft:#fdf1e6;--warn-line:#f0c79e;
+  --danger:#a61b1b;--danger-soft:#fbeaea;--danger-line:#efb8b8;
+  --ok:#0f6841;--ok-soft:#e8f5ee;--ok-line:#b4dec7;
+  --radius:12px;--font:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e1217;--surface:#161c24;--surface-2:#1e2631;--ink:#e7ecf2;--muted:#9aa6b4;--line:#28323f;
+  --accent:#6fa2f0;--accent-ink:#0c1626;--accent-soft:#19273b;
+  --warn:#f3ad61;--warn-soft:#2e2010;--warn-line:#5e3e19;
+  --danger:#f28b82;--danger-soft:#341717;--danger-line:#692929;
+  --ok:#68cf9d;--ok-soft:#112b1f;--ok-line:#1f543b;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+.nums{font-variant-numeric:tabular-nums}
+.app{max-width:600px;margin:0 auto;min-height:100dvh;padding-bottom:84px}
+header.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:12px 16px 10px}
+.brand{display:flex;align-items:center;gap:10px}
+.drop-mark{width:28px;height:28px;flex:none}
+header.top h1{font-size:1.12rem;font-weight:700;margin:0;letter-spacing:-0.01em}
+header.top p{font-size:0.8rem;color:var(--muted);margin:1px 0 0}
+
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.nav-inner{max-width:600px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.nav button{appearance:none;border:1px solid transparent;background:transparent;color:var(--muted);font:600 0.82rem/1.2 var(--font);padding:8px 6px;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.nav button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--line)}
+
+main{padding:14px 14px 12px}
+.panel{display:none}
+.panel.active{display:block}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px;margin-bottom:12px}
+.card h2{font-size:0.98rem;font-weight:700;margin:0 0 10px;letter-spacing:-0.01em}
+
+.param-strip{display:flex;flex-wrap:wrap;gap:12px;font-size:0.84rem;color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line)}
+.param-strip strong{color:var(--ink);font-weight:600}
+
+.isf-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;font-size:0.86rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface-2)}
+.seg button{border:none;background:transparent;color:var(--ink);font:500 0.84rem/1 var(--font);padding:8px 11px;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.isf-row input{width:3.6rem;font:600 0.86rem/1 var(--font);padding:5px 6px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:center}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label.lbl{display:block;font-weight:600;font-size:0.86rem;margin-bottom:5px}
+.input-wrap input{width:100%;font:700 1.65rem/1.15 var(--font);padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.input-wrap input:focus{outline:none;border-color:var(--accent)}
+.sub-unit{font-size:0.78rem;color:var(--muted);margin-top:3px}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:500 0.84rem/1 var(--font);padding:7px 10px;border-radius:8px;cursor:pointer}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+
+.dose-box{margin-top:14px;padding:16px 14px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--line);text-align:center}
+.dose-num{font-size:3rem;font-weight:800;line-height:1;letter-spacing:-0.02em}
+.dose-unit{font-size:1.05rem;font-weight:600;color:var(--muted);margin-left:5px}
+.dose-explain{font-size:0.86rem;color:var(--muted);margin-top:8px}
+
+.notice{border-radius:9px;padding:10px 12px;margin-top:10px;font-size:0.88rem;border:1px solid transparent}
+.notice.danger{background:var(--danger-soft);color:var(--danger);border-color:var(--danger-line);font-weight:600}
+.notice.warn{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
+.notice.ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok-line)}
+
+.btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:600 0.9rem/1 var(--font);padding:10px 14px;border-radius:9px;cursor:pointer}
+.btn.sec{background:transparent;color:var(--accent)}
+.btn.sm{padding:7px 11px;font-size:0.82rem}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+.search{width:100%;font:400 0.96rem/1.3 var(--font);padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.search:focus{outline:none;border-color:var(--accent)}
+
+.flist{margin-top:10px;max-height:460px;overflow-y:auto;border-top:1px solid var(--line)}
+.fi{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
+.fi-info{flex:1;min-width:0}
+.fi-name{font-weight:600;font-size:0.94rem;display:block}
+.fi-meta{font-size:0.79rem;color:var(--muted);display:block}
+.fi-tag{display:inline-block;font-size:0.7rem;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+.fi-carb{text-align:right;white-space:nowrap}
+.fi-carb strong{display:block;font-size:1rem;font-weight:700}
+.fi-carb small{font-size:0.72rem;color:var(--muted)}
+.fi-add{width:34px;height:34px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-size:1.2rem;line-height:1;cursor:pointer;flex:none}
+
+.plate{margin-top:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.plate-top{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:0.92rem}
+.plate ul{list-style:none;margin:8px 0;padding:0}
+.plate li{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:0.88rem;border-bottom:1px dashed var(--line)}
+.plate li:last-child{border-bottom:none}
+.plate li span{flex:1}
+.plate li button{width:28px;height:28px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font-weight:700}
+.plate-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+
+.kv{width:100%;border-collapse:collapse;font-size:0.9rem}
+.kv th,.kv td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.kv th{color:var(--muted);font-weight:600;width:44%}
+.kv td{font-weight:600}
+.kv tr:last-child th,.kv tr:last-child td{border-bottom:none}
+
+.hero-stat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.stat-tile{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.stat-tile small{display:block;font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.03em}
+.stat-tile strong{display:block;font-size:1.35rem;font-weight:800;margin-top:2px}
+.stat-tile span{display:block;font-size:0.78rem;color:var(--muted);margin-top:2px}
+
+.rules{margin:0;padding-left:18px;font-size:0.88rem}
+.rules li{margin:5px 0}
+.log-list{margin:8px 0 0;padding-left:18px;font-size:0.88rem}
+.log-list li{margin:4px 0}
+
+details.grid-details{margin-top:12px}
+details.grid-details summary{cursor:pointer;font-weight:600;font-size:0.9rem;color:var(--accent);padding:4px 0}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+table.grid-tbl{border-collapse:collapse;font-size:0.76rem;width:100%}
+table.grid-tbl th,table.grid-tbl td{padding:5px 6px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+table.grid-tbl th{background:var(--surface-2);position:sticky;top:0}
+table.grid-tbl td.rh{font-weight:700;text-align:left;position:sticky;left:0;background:var(--surface)}
+table.grid-tbl td.hit{background:var(--accent);color:var(--accent-ink);font-weight:800}
+table.grid-tbl td.hitrow{background:var(--accent-soft)}
+.small{font-size:0.82rem;color:var(--muted)}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg class="drop-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="16" fill="#b42318"/>
+        <path d="M32 11C32 11 15 31.2 15 42.5C15 51.9 22.6 56 32 56C41.4 56 49 51.9 49 42.5C49 31.2 32 11 32 11Z" fill="#ffffff"/>
+      </svg>
+      <div>
+        <h1>Insulin &amp; Carb Companion</h1>
+        <p>Pump backup dosing, Colombian carb lookup &amp; basal plan</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: CALCULATOR -->
+    <section id="tab-calc" class="panel active" aria-label="Dose Calculator">
+      <div class="card">
+        <div class="param-strip nums">
+          <span>ICR: <strong>1 U / 7.3 g</strong></span>
+          <span>ISF: <strong id="isfChip">1 U / 1.9 mmol/L</strong></span>
+          <span>Target: <strong>6.0 mmol/L</strong></span>
+        </div>
+        <div class="isf-row">
+          <span>Sensitivity ratio:</span>
+          <div class="seg" role="group" aria-label="Sensitivity ratio mode">
+            <button type="button" id="isfPlan">Plan (1.9)</button>
+            <button type="button" id="isfCustom">Custom: <input id="isfVal" class="nums" type="number" inputmode="decimal" step="0.1" min="1" max="5" value="1.9" aria-label="Custom sensitivity ratio"></button>
+          </div>
+        </div>
+        <div id="isfWarn" class="notice warn hidden">Using a custom sensitivity ratio rather than your backup plan (1 U per 1.9 mmol/L). Confirm changes with your diabetes team.</div>
+      </div>
+
+      <div class="card">
+        <div class="grid-2">
+          <div class="input-wrap">
+            <label class="lbl" for="bg">Blood glucose</label>
+            <input id="bg" class="nums" type="number" inputmode="decimal" step="0.1" min="0" max="40" placeholder="9.4">
+            <div class="sub-unit">mmol/L</div>
+          </div>
+          <div class="input-wrap">
+            <label class="lbl" for="carb">Carbohydrates</label>
+            <input id="carb" class="nums" type="number" inputmode="decimal" step="1" min="0" max="300" placeholder="45">
+            <div class="sub-unit">grams (g)</div>
+          </div>
+        </div>
+        <div class="chips" id="chips"></div>
+
+        <div id="hypo" class="notice danger hidden">Blood glucose below 3.5 mmol/L: treat hypoglycaemia first. Do not inject rapid-acting insulin.</div>
+
+        <div id="result" class="dose-box hidden">
+          <div class="nums"><span class="dose-num" id="dose">0.0</span><span class="dose-unit">units</span></div>
+          <div class="dose-explain" id="why"></div>
+        </div>
+
+        <div id="notes"></div>
+
+        <div id="logrow" class="actions hidden">
+          <button type="button" class="btn" id="logbtn">Log rapid dose now</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Recent rapid doses (3-hour spacing)</h2>
+        <div id="sinceBox" class="small">No doses logged on this device yet.</div>
+        <ul class="log-list nums" id="log"></ul>
+        <div class="actions">
+          <button type="button" class="btn sec sm" id="clearlog">Clear log</button>
+        </div>
+        <p class="small" style="margin-bottom:0">Stored locally in this browser using your device clock.</p>
+      </div>
+
+      <div class="card">
+        <h2>Full dose grid</h2>
+        <p class="small" id="gridNote" style="margin:0"></p>
+        <details class="grid-details" id="gridDetails">
+          <summary>Show / hide full grid (BG 4–20+ mmol/L, 0–100 g)</summary>
+          <div class="tablewrap"><table class="grid-tbl nums" id="grid"></table></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- TAB 2: COLOMBIAN CARBS -->
+    <section id="tab-carbs" class="panel" aria-label="Colombian Food Carbs">
+      <div class="card">
+        <h2>Colombian food &amp; holiday carb lookup</h2>
+        <input id="fsearch" class="search" type="search" placeholder="Search in Spanish or English (choclo, mazorca, natilla, buñuelo, hojuela...)" autocomplete="off">
+        <div class="chips" id="fcats"></div>
+        <div id="flist" class="flist nums"></div>
+
+        <div id="plate" class="plate hidden">
+          <div class="plate-top">
+            <span>Selected plate</span>
+            <button type="button" class="btn sec sm" id="pclear">Clear</button>
+          </div>
+          <ul id="pitems" class="nums"></ul>
+          <div class="plate-foot">
+            <span class="nums">Total: <strong id="ptotal">0</strong> g carb</span>
+            <button type="button" class="btn sm" id="puse">Send to calculator</button>
+          </div>
+        </div>
+        <p class="small" style="margin-bottom:0;margin-top:10px">Estimates for typical Colombian portions. Ask for juices <strong>"sin azúcar, por favor"</strong>; <strong>"en agua"</strong> uses water, <strong>"en leche"</strong> uses milk.</p>
+      </div>
+
+      <div class="card">
+        <h2>Nutrition label helper (etiqueta nutricional)</h2>
+        <div class="seg" style="margin-bottom:10px">
+          <button type="button" id="t100" class="on">Per 100 g</button>
+          <button type="button" id="tpor">Per serving (porción)</button>
+        </div>
+        <div id="p100">
+          <div class="grid-2">
+            <div class="input-wrap"><label class="lbl" for="c100">Carbohidratos totales / 100 g</label><input id="c100" class="nums" type="number" inputmode="decimal" step="0.1" min="0"></div>
+            <div class="input-wrap"><label class="lbl" for="grams">Grams eaten</label><input id="grams" class="nums" type="number" inputmode="decimal" step="1" min="0"></div>
+          </div>
+        </div>
+        <div id="ppor" class="hidden">
+          <div class="grid-2">
+            <div class="input-wrap"><label class="lbl" for="cpor">Carbohidratos totales / porción</label><input id="cpor" class="nums" type="number" inputmode="decimal" step="0.1" min="0"></div>
+            <div class="input-wrap"><label class="lbl" for="nport">Servings (porciones)</label><input id="nport" class="nums" type="number" inputmode="decimal" step="0.25" min="0" value="1"></div>
+          </div>
+        </div>
+        <div id="labout" class="nums" style="margin-top:10px;font-size:0.94rem"></div>
+        <div id="userow" class="actions hidden"><button type="button" class="btn sm" id="usebtn">Send to calculator</button></div>
+        <ul class="rules" style="margin-top:10px">
+          <li><strong>Carbohidratos totales</strong>: total carbohydrate figure to use.</li>
+          <li><strong>Azúcares</strong> / <strong>azúcares añadidos</strong>: sugars already included in total carbs.</li>
+          <li><strong>Fibra dietaria</strong>: fibre (listed separately).</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- TAB 3: BACKUP & PUMP -->
+    <section id="tab-backup" class="panel" aria-label="Pump Backup & Basal Plan">
+      <div class="card">
+        <h2>Daily basal &amp; pump failure backup</h2>
+        <div class="hero-stat nums">
+          <div class="stat-tile">
+            <small>Daily basal (once daily)</small>
+            <strong>40 U</strong>
+            <span>Optisulin (glargine, same insulin as Lantus) every 24 h</span>
+          </div>
+          <div class="stat-tile">
+            <small>Target &amp; sensitivity</small>
+            <strong>6.0 mmol/L</strong>
+            <span>Correction: 1 U lowers BG by 1.9 mmol/L</span>
+          </div>
+        </div>
+        <table class="kv nums">
+          <tr><th>Long-acting basal (once daily)</th><td><strong>40 units</strong> Optisulin (pump basal + 20%). Take first dose at time of pump failure; repeat at <strong>24-hour</strong> intervals. In Colombia glargine is sold as Lantus or Basaglar (same strength). Toujeo is a stronger concentration, so do not swap it in unit for unit without advice.</td></tr>
+          <tr><th>Resuming a pump</th><td>Wait <strong>12 or 24 hours</strong> after your last long-acting basal dose (Lantus / Levemir / Optisulin) before resuming pump delivery. Aim to resume in the <strong>morning</strong>.</td></tr>
+          <tr><th>Rapid-acting insulin</th><td>Novorapid / Humalog / Apidra / Fiasp. Sensitivity ratio: <strong>1 U per 1.9 mmol/L</strong> (target 6 mmol/L). Keep between-meal rapid doses at least <strong>3 hours</strong> apart.</td></tr>
+          <tr><th>Hypo &amp; snack rules</th><td>Treat hypoglycaemia if BG &lt; <strong>3.5 mmol/L</strong>. Limit unplanned snacks to <strong>10 g</strong> carb if not dosing at snack time.</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Clinic &amp; emergency contacts</h2>
+        <table class="kv nums">
+          <tr><th>Pump emergencies</th><td>Call your insulin pump 24-hour customer support.</td></tr>
+          <tr><th>TIPS (Total Insulin Pump Service)</th><td>Comprehensive pump education (not a 24-hour emergency service).</td></tr>
+          <tr><th>Brigid</th><td>Suite 347, Level 7, 225 Wickham Tce, Brisbane 4000 &middot; Ph: 3051 0375</td></tr>
+          <tr><th>Janet</th><td>Suite 7, Level 5, 201 Wickham Tce, Brisbane 4000 &middot; Ph: 3831 1733</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Backup plan reminders</h2>
+        <ul class="rules">
+          <li>Follow your diabetes team's specific instructions for basal insulin, ketones, and sick days.</li>
+          <li>Review your pump backup plan and see your TIPS diabetes educator and dietitian at least once a year.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav" aria-label="Primary sections">
+    <div class="nav-inner">
+      <button type="button" data-tab="calc" aria-selected="true">Calculator</button>
+      <button type="button" data-tab="carbs" aria-selected="false">Colombian Carbs</button>
+      <button type="button" data-tab="backup" aria-selected="false">Backup &amp; Pump</button>
+    </div>
+  </nav>
+</div>
+
+<script>
+(function(){
+const ICR=7.3, PLAN_ISF=1.9, TARGET=6;
+let ISF=1.9;
+const f05=x=>Math.floor(x*2+1e-9)/2;
+const r05=x=>Math.round(x*2)/2;
+const COLS=[10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100];
+const ROWS=[8,9,10,11,12,13,14,15,16,17,18,19,20];
+const rowLabel=r=>r===8?"4 to 8":(r===20?"20 and above":String(r));
+const $=id=>document.getElementById(id);
+const fmt=x=>x.toFixed(1);
+
+const store={
+  get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+
+// Tab switching
+document.querySelectorAll(".nav button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const target=btn.dataset.tab;
+    document.querySelectorAll(".nav button").forEach(b=>b.setAttribute("aria-selected",String(b===btn)));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="tab-"+target));
+    window.scrollTo({top:0,behavior:"instant"});
+  });
+});
+function goCalc(){
+  const calcBtn=document.querySelector('.nav button[data-tab="calc"]');
+  if(calcBtn) calcBtn.click();
+}
+
+// Carb quick chips
+const chipVals=[0,10,15,20,30,45,60,75,90];
+$("chips").innerHTML=chipVals.map(v=>`<button type="button" class="chip nums" data-c="${v}">${v} g</button>`).join("");
+$("chips").addEventListener("click",e=>{
+  const c=e.target.dataset.c;
+  if(c!==undefined){$("carb").value=c;calc();}
+});
+
+function gridRow(bg){
+  if(bg<9) return 8;
+  return Math.min(20,Math.floor(bg+1e-9));
+}
+
+let current=null;
+function calc(){
+  const bg=parseFloat($("bg").value);
+  const carbRaw=$("carb").value;
+  const carb=carbRaw===""?NaN:parseFloat(carbRaw);
+  $("hypo").classList.add("hidden");
+  $("result").classList.add("hidden");
+  $("logrow").classList.add("hidden");
+  $("notes").innerHTML="";
+  current=null;
+
+  if(isNaN(bg)){drawGrid(null,null);return;}
+  if(bg<3.5){$("hypo").classList.remove("hidden");drawGrid(null,null);return;}
+  if(isNaN(carb)||carb<0){drawGrid(gridRow(bg),null);return;}
+
+  const row=gridRow(bg);
+  const notes=[];
+  let dose, why, col=null;
+
+  if(carb===0){
+    dose=corrOnly(row);
+    why = row===8
+      ? "BG in the 4 to 8 mmol/L row with 0 g carb: no rapid insulin."
+      : `Correction only: (${row} − 6) ÷ ${ISF} = ${((row-TARGET)/ISF).toFixed(2)} U, rounded down to 0.5 U.`;
+  } else {
+    const idx=COLS.indexOf(carb);
+    const corrExact=row===8?0:(row-TARGET)/ISF;
+    dose=r05(carb/ICR+corrExact);
+    if(idx>=0) col=idx;
+    why=`${carb} g ÷ ${ICR} = ${(carb/ICR).toFixed(2)} U`+(row===8?"":` + correction ${corrExact.toFixed(2)} U`)+`, rounded to nearest 0.5 U.`;
+    if(carb>100) notes.push(["warn","Over 100 g exceeds the printed grid columns; calculated using the same ratio."]);
+    if(carb>0 && carb<=10) notes.push(["ok","Snack rule: up to 10 g carb can be taken without dosing if not dosing at snack time."]);
+  }
+
+  if(bg<4) notes.push(["warn","BG is between 3.5 and 4.0 mmol/L; close to hypoglycaemia range."]);
+  if(bg>20) notes.push(["warn",`BG above 20 mmol/L: correction capped at the 20 row (+${fmt(corrOnly(20))} U).`]);
+  if(bg%1!==0 && bg>=9) notes.push(["ok",`BG ${bg} uses row ${rowLabel(row)}, matching the lower-bound rule on the grid.`]);
+
+  const last=lastDose();
+  if(last && dose>0){
+    const hrs=(Date.now()-last.t)/3600000;
+    if(hrs<3){
+      const next=new Date(last.t+3*3600000);
+      notes.push(["warn",`Last rapid dose was ${fmtDur(hrs)} ago. Keep between-meal rapid doses at least 3 hours apart (after ${next.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}).`]);
+    }
+  }
+
+  $("dose").textContent=fmt(dose);
+  $("why").textContent=why;
+  $("result").classList.remove("hidden");
+  if(dose>0){$("logrow").classList.remove("hidden");current={t:Date.now(),bg,carb,dose};}
+  $("notes").innerHTML=notes.map(([c,m])=>`<div class="notice ${c}">${m}</div>`).join("");
+  drawGrid(row,col);
+}
+
+function isPlan(){return Math.abs(ISF-PLAN_ISF)<1e-9;}
+function corrOnly(r){if(r===8) return 0; return f05((r-TARGET)/ISF);}
+function cellDose(r,i){return r05(COLS[i]/ICR+(r===8?0:(r-TARGET)/ISF));}
+function drawGrid(row,col){
+  let h="<tr><th>BG</th><th>0</th>"+COLS.map(c=>`<th>${c}</th>`).join("")+"</tr>";
+  for(const r of ROWS){
+    const on=r===row;
+    h+=`<tr><td class="rh">${rowLabel(r)}</td>`;
+    h+=`<td class="${on&&$("carb").value==="0"?"hit":(on?"hitrow":"")}">${r===8?"0":"+"+fmt(corrOnly(r))}</td>`;
+    COLS.forEach((c,i)=>{h+=`<td class="${on&&i===col?"hit":(on?"hitrow":"")}">${fmt(cellDose(r,i))}</td>`;});
+    h+="</tr>";
+  }
+  $("grid").innerHTML=h;
+}
+
+// Dose log
+function getLog(){return store.get("doseLog")||[];}
+function lastDose(){const l=getLog();return l.length?l[0]:null;}
+function fmtDur(h){const m=Math.round(h*60);return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`;}
+function renderLog(){
+  const l=getLog();
+  $("log").innerHTML=l.slice(0,8).map(d=>{
+    const dt=new Date(d.t);
+    return `<li><strong>${fmt(d.dose)} U</strong> — ${dt.toLocaleString([],{weekday:"short",hour:"numeric",minute:"2-digit"})} (BG ${d.bg}, ${d.carb} g)</li>`;
+  }).join("");
+  const last=lastDose();
+  if(!last){$("sinceBox").textContent="No doses logged on this device yet.";return;}
+  const hrs=(Date.now()-last.t)/3600000;
+  $("sinceBox").innerHTML = hrs<3
+    ? `<div class="notice warn" style="margin:0">Last rapid dose ${fmtDur(hrs)} ago. Wait until ${new Date(last.t+3*3600000).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})} for a between-meal dose.</div>`
+    : `<div class="notice ok" style="margin:0">Last rapid dose ${fmtDur(hrs)} ago (at least 3 hours elapsed).</div>`;
+}
+$("logbtn").addEventListener("click",()=>{
+  if(!current) return;
+  const l=getLog();
+  l.unshift({...current,t:Date.now()});
+  store.set("doseLog",l.slice(0,50));
+  $("logbtn").textContent="Logged";
+  setTimeout(()=>{$("logbtn").textContent="Log rapid dose now";},1500);
+  renderLog();
+  calc();
+});
+let clearArm=false;
+$("clearlog").addEventListener("click",()=>{
+  if(!clearArm){
+    clearArm=true;
+    $("clearlog").textContent="Tap again to clear";
+    setTimeout(()=>{clearArm=false;$("clearlog").textContent="Clear log";},3000);
+    return;
+  }
+  store.set("doseLog",[]);
+  clearArm=false;
+  $("clearlog").textContent="Clear log";
+  renderLog();
+  calc();
+});
+
+// Label helper
+let mode="100";
+function lab(){
+  let g=NaN;
+  if(mode==="100"){
+    const a=parseFloat($("c100").value),b=parseFloat($("grams").value);
+    if(!isNaN(a)&&!isNaN(b)) g=a*b/100;
+  } else {
+    const a=parseFloat($("cpor").value),b=parseFloat($("nport").value);
+    if(!isNaN(a)&&!isNaN(b)) g=a*b;
+  }
+  if(isNaN(g)){$("labout").textContent="";$("userow").classList.add("hidden");return;}
+  const rounded=Math.round(g);
+  $("labout").innerHTML=`Estimated total: <strong>${rounded} g</strong> carbohydrate.`;
+  $("userow").classList.remove("hidden");
+  $("usebtn").dataset.g=rounded;
+}
+["c100","grams","cpor","nport"].forEach(id=>$(id).addEventListener("input",lab));
+$("t100").addEventListener("click",()=>{mode="100";$("t100").classList.add("on");$("tpor").classList.remove("on");$("p100").classList.remove("hidden");$("ppor").classList.add("hidden");lab();});
+$("tpor").addEventListener("click",()=>{mode="por";$("tpor").classList.add("on");$("t100").classList.remove("on");$("ppor").classList.remove("hidden");$("p100").classList.add("hidden");lab();});
+$("usebtn").addEventListener("click",()=>{$("carb").value=$("usebtn").dataset.g;calc();goCalc();});
+
+// Colombian food database
+const FOODS=[
+["Corn & maiz","Mazorca / choclo (1 cob)","sweet/field corn on the cob, boiled or steamed","1 large cob (about 160–180 g kernels)",32,"26 to 38","Corn"],
+["Corn & maiz","Trozo de mazorca / choclo (1 piece)","single cut piece of corn cob (e.g. in ajiaco or sancocho)","1 piece (about 1/3 cob, ~55 g)",11,"9 to 14","Corn"],
+["Corn & maiz","Maíz tierno desgranado","loose sweet/tender corn kernels","1/2 cup (about 80 g)",16,"14 to 20","Corn"],
+["Corn & maiz","Maíz pira / crispetas","popped corn (plain or lightly salted/sweetened)","2 cups popped (about 30 g)",20,"16 to 25","Corn"],
+["Corn & maiz","Cancha / maíz tostado","toasted corn kernels","1/4 cup (about 35 g)",24,"20 to 28","Corn"],
+["Corn & maiz","Arepa blanca / paisa","griddled white corn cake","1 palm size (80–100 g)",35,"30 to 40","Corn"],
+["Corn & maiz","Arepa con queso / rellena","corn arepa with cheese filling or topping","1 (about 120 g)",35,"30 to 45","Corn"],
+["Corn & maiz","Arepa de choclo","fresh sweet corn arepa, often with quesito/cheese","1 (about 120 g)",40,"35 to 50","Corn"],
+["Corn & maiz","Arepa de huevo","fried corn cake stuffed with egg (Caribbean coast)","1 (about 150 g)",40,"35 to 50","Corn"],
+["Corn & maiz","Arepa boyacense","sweet wheat-and-corn arepa with cheese inside","1 (about 100 g)",45,"35 to 55","Corn"],
+["Corn & maiz","Arepa santandereana","corn arepa with chicharrón and pork cracklings","1 (about 110 g)",34,"28 to 42","Corn"],
+["Corn & maiz","Empanada de maíz","fried corn pastry with beef/chicken and potato","1 regular (70–90 g)",20,"15 to 28","Corn"],
+["Corn & maiz","Empanadita de maíz","small party/cocktail corn empanada","1 small",10,"8 to 14","Corn"],
+["Corn & maiz","Envuelto / bollito de choclo","steamed sweet corn parcel wrapped in husk/leaf","1 (about 120 g)",36,"30 to 45","Corn"],
+["Corn & maiz","Bollo limpio / de maíz blanco","boiled white corn parcel wrapped in corn husk","1 (about 120 g)",32,"28 to 38","Corn"],
+["Corn & maiz","Pandebono","baked cheese and corn/starch bread","1 (45–50 g)",15,"12 to 18","Corn"],
+["Corn & maiz","Almojábana","baked fresh cheese and cornmeal roll","1 (about 50 g)",16,"14 to 20","Corn"],
+["Corn & maiz","Pan de yuca","cassava (yuca) and cheese roll","1 (about 50 g)",15,"12 to 18","Corn"],
+
+["Christmas (Navidad)","Natilla navideña","traditional thickened milk & panela/cane dessert","1 square / portion (100 g)",26,"22 to 32","Navidad"],
+["Christmas (Navidad)","Buñuelo navideño","crispy fried cheese dough ball","1 medium (50–60 g)",28,"22 to 34","Navidad"],
+["Christmas (Navidad)","Hojuela / hojaldra navideña","thin crisp fried pastry dusted with sugar","1 piece (about 30 g)",20,"16 to 25","Navidad"],
+["Christmas (Navidad)","Tamal navideño","steamed masa parcel with meat, egg, peas, carrot in leaf","1 average (about 350 g)",48,"38 to 75 (larger = more)","Navidad"],
+["Christmas (Navidad)","Lechona","roast stuffed pork with seasoned peas/rice/corn","1 serve (about 300 g)",32,"22 to 45, plus arepa","Navidad"],
+["Christmas (Navidad)","Manjar blanco del Valle","slow-cooked milk and sugar fudge dessert","1 small serve (60 g)",34,"28 to 40","Navidad"],
+["Christmas (Navidad)","Brevas con arequipe","figs preserved in syrup topped with dulce de leche","2 halves + arequipe",35,"28 to 45","Navidad"],
+["Christmas (Navidad)","Cuajada con melao","fresh farmer cheese with panela syrup","1 serve with syrup",22,"16 to 30","Navidad"],
+["Christmas (Navidad)","Arroz con leche","creamy rice pudding with cinnamon and raisins","1 cup (180 g)",48,"40 to 58","Navidad"],
+["Christmas (Navidad)","Rellena / morcilla","blood sausage with rice/herbs/veg","1 link / portion (100 g)",18,"12 to 25","Navidad"],
+["Christmas (Navidad)","Pernil de cerdo al horno","roast pork leg/shoulder (glaze varies)","1 serve meat (150 g)",6,"2 to 15 (if glazed)","Navidad"],
+["Christmas (Navidad)","Chicharrón","crispy fried pork belly/rind","1 serve (80–100 g)",2,"0 to 5 (more if breaded)","Navidad"],
+["Christmas (Navidad)","Salpicón de frutas","mixed tropical fruit cup with juice/condensed milk","1 cup (200 g)",34,"25 to 45","Navidad"],
+["Christmas (Navidad)","Sabajón","spiced egg-and-milk holiday drink (often with rum/aguardiente)","1 small glass (150 ml)",28,"22 to 35","Navidad"],
+["Christmas (Navidad)","Canelazo / vino caliente","warm spiced cinnamon & panela (or wine) drink","1 mug (220 ml)",30,"20 to 40","Navidad"],
+["Christmas (Navidad)","Masato","fermented rice or corn holiday drink","1 glass (220 ml)",32,"25 to 40","Navidad"],
+["Christmas (Navidad)","Pavo / pollo relleno navideño","roast turkey/chicken with stuffing (relleno)","1 serve + stuffing",28,"18 to 40","Navidad"],
+
+["Staples & sides","Arroz blanco cocido","cooked white rice","1 cup (160 g)",45,"40 to 50",""],
+["Staples & sides","Arroz blanco (acompañamiento)","typical lunch plate rice side","about 3/4 cup (120 g)",35,"30 to 45",""],
+["Staples & sides","Papa criolla","small yellow Andean potatoes","1/2 cup / 5 small",15,"12 to 20",""],
+["Staples & sides","Papa cocida / salada","boiled potato","1 medium (150 g)",30,"25 to 35",""],
+["Staples & sides","Papas fritas","fries / chips","1 side portion (100 g)",35,"30 to 45",""],
+["Staples & sides","Yuca cocida o frita","cassava, boiled or fried","1 cup / 2–3 pieces",45,"35 to 50",""],
+["Staples & sides","Patacón","flattened fried green plantain","1 patacón",18,"15 to 25",""],
+["Staples & sides","Tajadas / plátano maduro","fried sweet ripe plantain","1/2 plantain",30,"25 to 40",""],
+["Staples & sides","Frijoles","red bean stew","1 cup",30,"25 to 40",""],
+["Staples & sides","Lentejas","lentil stew","1 cup",35,"30 to 40",""],
+
+["Meals & soups","Bandeja paisa","rice, beans, arepa, plantain, chicharrón, egg, meat","1 full plate",105,"85 to 130",""],
+["Meals & soups","Ajiaco santafereño","chicken, three potatoes, guascas, corn cob piece","1 bowl (about 2 cups)",40,"30 to 50 (plus rice/cream)","Corn"],
+["Meals & soups","Sancocho","plantain, yuca, potato, corn, meat soup","1 bowl (about 2 cups)",45,"35 to 60 (plus rice)","Corn"],
+["Meals & soups","Corrientazo / menú del día","soup, rice, plantain/potato, protein, juice","1 set lunch + juice",110,"90 to 140",""],
+["Meals & soups","Arroz con pollo","chicken and mixed vegetable rice","1.5 cups",55,"45 to 65",""],
+["Meals & soups","Mote de queso","yam and coastal cheese soup","1 bowl",30,"25 to 40",""],
+["Meals & soups","Changua","milk and egg breakfast soup","1 bowl + calado bread",25,"20 to 35",""],
+["Meals & soups","Huevos pericos + arepa","scrambled eggs with tomato/onion + arepa","1 plate",35,"30 to 45","Corn"],
+
+["Drinks","Jugo natural en agua (con azúcar)","fruit juice blended with water and added sugar","1 glass (250 ml)",30,"25 to 40",""],
+["Drinks","Jugo natural en leche (con azúcar)","fruit juice blended with milk and sugar","1 glass (250 ml)",40,"35 to 50",""],
+["Drinks","Jugo sin azúcar (en agua)","fruit juice with no added sugar","1 glass (250 ml)",15,"10 to 20",""],
+["Drinks","Jugo grande (con azúcar)","large lunch glass with sugar","1 large (400 ml)",50,"40 to 65",""],
+["Drinks","Limonada natural","fresh limeade with sugar","1 glass (250 ml)",30,"25 to 35",""],
+["Drinks","Limonada de coco","creamy coconut limeade","1 glass (300 ml)",45,"35 to 55",""],
+["Drinks","Aguapanela","panela (unrefined cane sugar) drink, hot or iced","1 cup (250 ml)",40,"25 to 55",""],
+["Drinks","Chocolate caliente","hot chocolate with milk and sugar","1 cup (250 ml)",25,"20 to 30",""],
+["Drinks","Tinto","small black coffee, usually sweetened","1 small cup",8,"0 if sin azúcar",""],
+["Drinks","Café con leche","coffee with milk and sugar","1 cup (240 ml)",14,"10 to 20",""],
+["Drinks","Avena","chilled sweet oat drink","1 glass (250 ml)",40,"35 to 50",""],
+["Drinks","Gaseosa (400 ml)","regular soda / soft drink","1 bottle (400 ml)",42,"40 to 45",""],
+["Drinks","Gaseosa (350 ml)","regular soda / soft drink","1 can (350 ml)",37,"35 to 39",""],
+["Drinks","Chicha","fermented corn drink","1 cup",25,"20 to 30","Corn"],
+["Drinks","Cerveza (330 ml)","beer","1 bottle (330 ml)",12,"10 to 14",""],
+
+["Fruit & sweets","Banano","banana","1 medium",27,"20 to 30",""],
+["Fruit & sweets","Mango","diced mango","1 cup",30,"25 to 30",""],
+["Fruit & sweets","Papaya","diced papaya","1 cup",15,"12 to 16",""],
+["Fruit & sweets","Piña","diced pineapple","1 cup",20,"18 to 22",""],
+["Fruit & sweets","Guayaba","guava","2 small",15,"12 to 18",""],
+["Fruit & sweets","Guanábana","soursop pulp","1 cup",38,"30 to 40",""],
+["Fruit & sweets","Granadilla","sweet passionfruit","1 fruit",10,"8 to 12",""],
+["Fruit & sweets","Mandarina","mandarin","1 fruit",10,"8 to 12",""],
+["Fruit & sweets","Ensalada de frutas","fruit salad with cream, cheese, condensed milk","1 large cup",70,"50 to 90",""],
+["Fruit & sweets","Arequipe","dulce de leche","1 tablespoon",12,"10 to 13",""],
+["Fruit & sweets","Bocadillo","guava paste bar","1 small bar (30 g)",22,"18 to 25",""],
+["Fruit & sweets","Oblea con arequipe","thin wafer with dulce de leche","1 oblea",25,"20 to 30",""]
+];
+
+const CATS=["All","Corn & maiz","Christmas (Navidad)","Staples & sides","Meals & soups","Drinks","Fruit & sweets"];
+let fcat="All";
+$("fcats").innerHTML=CATS.map(c=>`<button type="button" class="chip" data-cat="${c}">${c}</button>`).join("");
+document.querySelectorAll("#fcats .chip").forEach(b=>b.classList.toggle("on",b.dataset.cat==="All"));
+$("fcats").addEventListener("click",e=>{
+  const c=e.target.dataset.cat;
+  if(!c) return;
+  fcat=c;
+  document.querySelectorAll("#fcats .chip").forEach(b=>b.classList.toggle("on",b.dataset.cat===c));
+  renderFoods();
+});
+
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+function renderFoods(){
+  const q=norm($("fsearch").value.trim());
+  const matches=FOODS.map((f,i)=>({f,i})).filter(({f})=>{
+    const catOk=fcat==="All"||f[0]===fcat;
+    const textOk=!q||norm(f[1]+" "+f[2]+" "+f[3]+" "+f[6]).includes(q);
+    return catOk&&textOk;
+  });
+  $("flist").innerHTML=matches.length
+    ? matches.map(({f,i})=>{
+        const tag=f[6]?`<span class="fi-tag">${f[6]}</span>`:"";
+        return `<div class="fi">
+          <div class="fi-info">
+            <span class="fi-name">${f[1]}${tag}</span>
+            <span class="fi-meta">${f[2]} &middot; ${f[3]}</span>
+          </div>
+          <div class="fi-carb"><strong>${f[4]} g</strong><small>${f[5]}</small></div>
+          <button type="button" class="fi-add" data-i="${i}" aria-label="Add ${f[1]}">+</button>
+        </div>`;
+      }).join("")
+    : `<p class="small" style="padding:10px 2px">No matching items. Try another Spanish or English term, or use the label helper below.</p>`;
+}
+$("fsearch").addEventListener("input",renderFoods);
+
+let plate=[];
+$("flist").addEventListener("click",e=>{
+  const i=e.target.dataset.i;
+  if(i===undefined) return;
+  const idx=+i;
+  const ex=plate.find(p=>p.i===idx);
+  if(ex) ex.n+=1; else plate.push({i:idx,n:1});
+  renderPlate();
+});
+function renderPlate(){
+  plate=plate.filter(p=>p.n>0);
+  $("plate").classList.toggle("hidden",!plate.length);
+  let tot=0;
+  $("pitems").innerHTML=plate.map((p,k)=>{
+    const f=FOODS[p.i];
+    const g=f[4]*p.n;
+    tot+=g;
+    return `<li>
+      <button type="button" data-k="${k}" data-d="-0.5" aria-label="Decrease portion">&minus;</button>
+      <strong>${p.n}&times;</strong>
+      <button type="button" data-k="${k}" data-d="0.5" aria-label="Increase portion">+</button>
+      <span>${f[1]}</span>
+      <strong>${Math.round(g)} g</strong>
+    </li>`;
+  }).join("");
+  const rounded=Math.round(tot);
+  $("ptotal").textContent=rounded;
+  $("puse").dataset.g=rounded;
+}
+$("pitems").addEventListener("click",e=>{
+  const k=e.target.dataset.k;
+  if(k===undefined) return;
+  plate[+k].n=Math.max(0,plate[+k].n+parseFloat(e.target.dataset.d));
+  renderPlate();
+});
+$("pclear").addEventListener("click",()=>{plate=[];renderPlate();});
+$("puse").addEventListener("click",()=>{$("carb").value=$("puse").dataset.g;calc();goCalc();});
+renderFoods();
+
+function setISF(v,save){
+  if(!(v>=1&&v<=5)) return;
+  ISF=v;
+  if(save) store.set("isf",v);
+  const p=isPlan();
+  $("isfPlan").classList.toggle("on",p);
+  $("isfCustom").classList.toggle("on",!p);
+  $("isfWarn").classList.toggle("hidden",p);
+  $("isfChip").textContent=`1 U / ${ISF} mmol/L`;
+  $("gridNote").textContent=p
+    ? "Backup plan settings (1 U / 7.3 g carb, 1 U / 1.9 mmol/L sensitivity above 8 mmol/L, target 6.0 mmol/L)."
+    : `Custom sensitivity ratio ${ISF} mmol/L (not your backup plan's 1.9 mmol/L).`;
+  calc();
+}
+$("isfPlan").addEventListener("click",()=>setISF(PLAN_ISF,true));
+$("isfCustom").addEventListener("click",e=>{if(e.target.id!=="isfVal") setISF(parseFloat($("isfVal").value),true);});
+$("isfVal").addEventListener("input",()=>{const v=parseFloat($("isfVal").value);if(v>=1&&v<=5) setISF(v,true);});
+$("bg").addEventListener("input",calc);
+$("carb").addEventListener("input",calc);
+
+renderLog();
+const savedISF=store.get("isf");
+if(savedISF && savedISF!==PLAN_ISF) $("isfVal").value=savedISF;
+setISF(savedISF||PLAN_ISF,false);
+setInterval(renderLog,60000);
+})();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}</script>
+</body>
+</html>
